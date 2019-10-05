@@ -1,20 +1,26 @@
-const defaultOptions = {};
+const defaultOptions = {
+  whiteListedElements: [],
+  nativeStartMove: () => {},
+  onStartMove: () => {},
+  onMove: () => {},
+  onEndMove: () => {},
+};
 
 export default class MovePriority {
   constructor(el, options = {}) {
-    this.moving = false;
-    this.moveStartEvent = null;
-    this.el = el;
+    this.el = el; // TODO: allow to pass string
     this.options = { ...defaultOptions, ...options };
-    this.startEvent = null;
-    this.moveEventsCount = 0;
+
+    // saved Events during interaction
+    this.nativeStartEvent = null;
+
+    // vars to detect if the element is allowed to move
     this.mObserver = null;
     this.detectedMove = false;
-    this.detectMutationTimeout = null;
-    this.canMoveTimeout = null;
-    this.canMove = false;
-    this.detectScrollTimeout = null;
     this.detectedScroll = false;
+    this.canMoveTimeout = null;
+    this.moveEventsCount = 0;
+    this.canMove = false;
 
     this.isTouch = Boolean('ontouchstart' in window
       || window.DocumentTouch
@@ -28,10 +34,10 @@ export default class MovePriority {
   initObserver() {
     // observe other drags
     this.mObserver = new MutationObserver(mutations => {
-      mutations.forEach(() => {
+      mutations.forEach(event => {
         // ignore style changes on the sections -> we change them ourselve during animations
-        // if (Array.from(this.el).some(el => event.target === el)) return;
-        // TODO: the above line is important ... get this working
+        if (this.options.whiteListedElements.some(el => event.target === el)) return;
+        // TODO: this.whiteListElements -> allow nodeList
         this.detectedMove = true;
       });
     });
@@ -64,8 +70,17 @@ export default class MovePriority {
     );
   }
 
-  removeEvents() {
+  disableObservation() {
+    console.log('called');
+    // TODO: turn everything off but keep the API
+  }
 
+  enableObservation() {
+    // TODO: turn everything on
+  }
+
+  removeEvents() {
+    // TODO: remove events Listeners, maybe call thismethod destroy
   }
 
   normalizeEvent(event) {
@@ -79,7 +94,8 @@ export default class MovePriority {
   }
 
   startMove(event) {
-    this.startEvent = this.normalizeEvent(event);
+    this.nativeStartEvent = this.normalizeEvent(event);
+    this.options.nativeStartMove(this.nativeStartEvent);
   }
 
   move() {
@@ -88,7 +104,7 @@ export default class MovePriority {
       console.log('moving');
       return;
     }
-    this.detectMovementPossibility();
+    this.isAllowedToMove();
   }
 
   stopMove() {
@@ -96,17 +112,17 @@ export default class MovePriority {
   }
 
   resetValues() {
-    this.startEvent = null;
+    this.nativeStartEvent = null;
     this.canMove = false;
     this.moveEventsCount = 0;
     this.detectedMove = false;
     this.detectedScroll = false;
   }
 
-  detectMovementPossibility() {
-    if (!this.startEvent || this.canMove || this.detectedScroll || this.detectedMove) return;
+  isAllowedToMove() {
+    if (!this.nativeStartEvent || this.canMove || this.detectedScroll || this.detectedMove) return;
     this.moveEventsCount++;
-    const inTime = (Date.now() - this.startEvent.timeStamp) > 100;
+    const inTime = (Date.now() - this.nativeStartEvent.timeStamp) > 100;
     let calledInRange = this.moveEventsCount > 2 && this.moveEventsCount < 18;
     if (!this.touch) calledInRange = this.moveEventsCount > 2 && this.moveEventsCount < 100;
     if (inTime && calledInRange) this.canMove = true;

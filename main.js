@@ -1,6 +1,8 @@
 import MovePriority from './move-priority';
 
-new MovePriority(document.querySelector('.outer-box'));
+const test = new MovePriority(document.querySelector('.outer-box'));
+console.log(test);
+test.disableObservation();
 window.dragula([document.querySelector('#dragula')]);
 
 // let dragging = false;
