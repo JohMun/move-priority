@@ -1,8 +1,16 @@
 import MovePriority from './move-priority';
 
-const test = new MovePriority(document.querySelector('.outer-box'));
-console.log(test);
-test.disableObservation();
+let showTimeout = null;
+new MovePriority(document.querySelector('.section-1'), {
+  onMove() {
+    const els = document.querySelectorAll('.stats-box');
+    els.forEach(el => el.innerHTML = 'Moving');
+    clearTimeout(showTimeout);
+    showTimeout = setTimeout(() => els.forEach(el => el.innerHTML = ''), 1000);
+  },
+});
+
+// test.disableObservation();
 window.dragula([document.querySelector('#dragula')]);
 
 // let dragging = false;

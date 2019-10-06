@@ -35,10 +35,15 @@ export default class MovePriority {
     // observe other drags
     this.mObserver = new MutationObserver(mutations => {
       mutations.forEach(event => {
+        if (this.detectedMove || !this.nativeStartEvent) return;
         // ignore style changes on the sections -> we change them ourselve during animations
         if (this.options.whiteListedElements.some(el => event.target === el)) return;
         // TODO: this.whiteListElements -> allow nodeList
-        this.detectedMove = true;
+        const rect = event.target.getBoundingClientRect();
+        const { x, y } = this.nativeStartEvent;
+        const inY = y > rect.y && y < rect.y + rect.height;
+        const inX = x > rect.x && x < rect.x + rect.width;
+        if (inY && inX) this.detectedMove = true;
       });
     });
     this.mObserver.observe(this.el, {
@@ -80,7 +85,8 @@ export default class MovePriority {
   }
 
   removeEvents() {
-    // TODO: remove events Listeners, maybe call thismethod destroy
+    // TODO: disconnect observer
+    // TODO: remove events Listeners, maybe call this method 'destroy'
   }
 
   normalizeEvent(event) {
@@ -98,16 +104,21 @@ export default class MovePriority {
     this.options.nativeStartMove(this.nativeStartEvent);
   }
 
-  move() {
+  move(event) {
     if (this.canMove) {
       if (this.canMoveTimeout) clearTimeout(this.canMoveTimeout);
-      console.log('moving');
+      // TODO: make some cool calculations
+      // speed, delta x/y, delta percentage based on screen,
+      const normalizedEvent = this.normalizeEvent(event);
+      this.options.onMove({ ...normalizedEvent, speed: 'test' });
       return;
     }
     this.isAllowedToMove();
   }
 
   stopMove() {
+    // TODO: make some cool calculations
+    // speed, delta x/y, delta percentage based on screen, direction
     this.resetValues();
   }
 
@@ -125,8 +136,10 @@ export default class MovePriority {
     const inTime = (Date.now() - this.nativeStartEvent.timeStamp) > 100;
     let calledInRange = this.moveEventsCount > 2 && this.moveEventsCount < 18;
     if (!this.touch) calledInRange = this.moveEventsCount > 2 && this.moveEventsCount < 100;
-    if (inTime && calledInRange) this.canMove = true;
-    else {
+    if (inTime && calledInRange) {
+      this.canMove = true;
+      // TODO: save some values here to make calculations
+    } else {
       clearTimeout(this.canMoveTimeout);
       this.canMoveTimeout = setTimeout(() => this.resetValues(), 60);
     }

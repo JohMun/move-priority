@@ -10,29 +10,19 @@ html, body {
 }
 
 body {
-  overflow: scroll;
+  overflow-y: scroll;
   height: 90%;
 }
 
-.box {
-  margin: 15px;
-  width: 200px;
-  height: 200px;
-  padding: 15px;
+ul {
+  list-style-type: none;
+  padding: 0px;
+  margin: 0px;
 }
 
-.outer-box {
-  background: #dedede;
-  width: auto;
-  height: auto;
-}
-
-.inner-box-1 {
-  background: #caca;
-}
-
-.inner-box-2 {
-  background: #aaccc4aa;
+.gu-mirror {
+  list-style-type: none;
+  text-align: center;
 }
 
 .scroll-box {
@@ -40,4 +30,68 @@ body {
   background: #dedede;
   width: auto;
   overflow-y: scroll;
+}
+
+section {
+  height: 100vh;
+  padding: 20px 0;
+}
+
+#dragula {
+  touch-action: none;
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Opera and Firefox */
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  height: 100%;
+}
+
+.pagewidth {
+  margin: 0 auto;
+  max-width: 1200px;
+}
+
+.yellow {
+  background: #ffd400;
+  color: #131313;
+}
+
+.dark {
+  background: #131313;
+  color: #ffd400;
+}
+
+.test-box, .empty-box, .stats-box {
+  margin: 5px;
+  flex: 1 1 0;
+  border: 3px solid #131313;
+}
+
+.empty-box {
+  position: relative;
+}
+
+.stats-box {
+  font-size: 2.2em;
+  padding-top: 15px;
+  font-weight: bold;
+}
+
+.empty-box::after {
+  content: 'Swiping around should have an effect here';
+  font-size: 1.17em;
+  top: 15px;
+  position: absolute;
+  font-weight: bold;
+  left: 0px;
+  right: 0px;
 }
