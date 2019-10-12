@@ -25,13 +25,6 @@ ul {
   text-align: center;
 }
 
-.scroll-box {
-  height: 100px;
-  background: #dedede;
-  width: auto;
-  overflow-y: scroll;
-}
-
 section {
   height: 100vh;
   padding: 20px 0;
@@ -74,6 +67,18 @@ section {
   margin: 5px;
   flex: 1 1 0;
   border: 3px solid #131313;
+}
+
+.dark .test-box, .dark .empty-box, .dark .stats-box {
+  margin: 5px;
+  flex: 1 1 0;
+  border: 3px solid #ffd400;
+}
+
+.scroll-box {
+  height: 100px;
+  width: auto;
+  overflow-y: scroll;
 }
 
 .empty-box {

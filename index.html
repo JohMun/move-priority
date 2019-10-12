@@ -10,26 +10,48 @@
     <title>The Title</title>
   </head>
   <body>
+
+
     <section class="yellow section-1">
       <div class="pagewidth container">
-          <h2>Test: Drag And Drop</h2>
-          <div class="test-box">
-            <h3>Swiping around should have no effect on the drag items</h3>
-            <ul id="dragula">
-              <li>item 1</li>
-              <li>item 2</li>
-              <li>item 3</li>
-              <li>item 4</li>
-              <li>item 5</li>
-            </ul>
-          </div>
-          <div class="empty-box"></div>
-          <div class="stats-box"></div>
+        <h2>Test: Drag And Drop</h2>
+        <div class="test-box">
+          <h3>'Moving' should not be shown during drag & drop</h3>
+          <button class="disconnect-button">Disconnect</button>
+          <button class="connect-button">Connect</button>
+          <ul id="dragula">
+            <li>item 1</li>
+            <li>item 2</li>
+            <li>item 3</li>
+            <li>item 4</li>
+            <li>item 5</li>
+          </ul>
+        </div>
+        <div class="empty-box"></div>
+        <div class="stats-box"></div>
       </div>
     </section>
-    <section class="dark section-2">
 
+
+    <section class="dark section-2">
+      <div class="pagewidth container">
+        <h2>Test: Scrolling</h2>
+        <div class="test-box">
+          <h3>'Moving' should not be shown when scrolling</h3>
+          <div class="scroll-box">
+            content <br> content <br> content <br> content <br>
+            content <br> content <br> content <br> content <br>
+            content <br> content <br> content <br> content <br>
+            content <br> content <br> content <br> content <br>
+            content <br> content <br> content <br> content <br>
+          </div>
+        </div>
+        <div class="empty-box"></div>
+        <div class="stats-box"></div>
+      </div>
     </section>
+
+
     <script src='https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.2/dragula.min.js'></script>
   </body>
 </html

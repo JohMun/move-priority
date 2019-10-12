@@ -1,7 +1,7 @@
 import MovePriority from './move-priority';
 
 let showTimeout = null;
-new MovePriority(document.querySelector('.section-1'), {
+const mover = new MovePriority('.section-1', {
   onMove() {
     const els = document.querySelectorAll('.stats-box');
     els.forEach(el => el.innerHTML = 'Moving');
@@ -10,49 +10,23 @@ new MovePriority(document.querySelector('.section-1'), {
   },
 });
 
-// test.disableObservation();
 window.dragula([document.querySelector('#dragula')]);
 
-// let dragging = false;
+document.querySelector('.disconnect-button').addEventListener('click', () => {
+  mover.diconnectObservation();
+});
 
-// document.querySelector('.outer-box').addEventListener('mousedown', () => {
-//   console.log('mousedown outer-box');
-//   dragging = true;
-// });
+document.querySelector('.connect-button').addEventListener('click', () => {
+  mover.connectObservation();
+});
 
-// document.querySelector('.outer-box').addEventListener('mouseup', () => {
-//   console.log('mouseup outer-box');
-//   dragging = false;
-// });
+let showTimeout2 = null;
+new MovePriority('.section-2', {
+  onMove() {
+    const els = document.querySelectorAll('.stats-box');
+    els.forEach(el => el.innerHTML = 'Moving');
+    clearTimeout(showTimeout2);
+    showTimeout2 = setTimeout(() => els.forEach(el => el.innerHTML = ''), 1000);
+  },
+});
 
-// document.querySelector('.outer-box').addEventListener('mousemove', () => {
-//   if (!dragging) return;
-//   console.log('move outer-box');
-// });
-
-// document.querySelector('.outer-box').addEventListener('touchstart', () => {
-//   console.log('pointerdown outer-box');
-//   dragging = true;
-// });
-
-// document.querySelector('.outer-box').addEventListener('touchend', () => {
-//   console.log('pointerup outer-box');
-//   dragging = false;
-// });
-
-// document.querySelector('.outer-box').addEventListener('touchmove', () => {
-//   if (!dragging) return;
-//   console.log('move outer-box');
-// });
-
-// document.querySelector('.scroll-box').addEventListener('scroll', () => {
-//   console.log('scroll');
-// });
-
-// document.querySelector('.outer-box').addEventListener('scroll', () => {
-//   console.log('scroll window');
-// }, true);
-
-// document.querySelector('.scroll-box').addEventListener('touchmove', () => {
-//   // e.stopPropagation();
-// });
