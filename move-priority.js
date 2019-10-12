@@ -115,12 +115,12 @@ export default class MovePriority {
 
   _normalizeEvent(event) {
     // eslint-disable-next-line prefer-const
-    let { clientX, clientY, timeStamp, target } = event;
+    let { clientX, clientY, target } = event;
     if (event.targetTouches) {
       clientX = event.targetTouches && event.targetTouches[0].clientX;
       clientY = event.targetTouches && event.targetTouches[0].clientY;
     }
-    return { nativeEvent: event, x: clientX, y: clientY, timeStamp, target };
+    return { nativeEvent: event, x: clientX, y: clientY, timeStamp: Date.now(), target };
   }
 
   _startMove(event) {
