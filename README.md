@@ -1,6 +1,6 @@
 # Move Priority
 
-**Currently under development, so use it at your own risk**
+**Currently under development, so use it on your own risk**
 
 This library attaches event listeners to an element and does some calculations,
 to support drag and drop and gesture interactions.
