@@ -2,7 +2,7 @@
   "name": "move-priority",
   "version": "1.0.1-next.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/move-priority.js",
   "scripts": {
     "analyze": "cross-env ANALYZE=true npm run build",
     "dev": "webpack-dev-server --hot --config ./build/develop.js",
