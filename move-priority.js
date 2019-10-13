@@ -1,10 +1,10 @@
 const defaultOptions = {
   mutationWhiteList: [],
   nativeStartMove: () => {},
-  onStartMove: () => {},
   nativeMove: () => {},
+  nativeStopMove: () => {},
+  onStartMove: () => {},
   onMove: () => {},
-  onEndMove: () => {},
   onCancelMove: () => {},
   onStopMove: () => {},
 };
@@ -15,8 +15,10 @@ export default class MovePriority {
     this.el = el;
     this.options = { ...defaultOptions, ...options };
     this.whiteListed = this._nodeList2Array(this.options.mutationWhiteList);
-
     this.nativeStartEvent = null;
+    this.startEvent = null;
+    this.screenSize = {};
+    this.lastTouch = null;
 
     // vars to detect, if the element is allowed to move
     this.mObserver = null;
@@ -37,7 +39,9 @@ export default class MovePriority {
     this._stopMove = this._stopMove.bind(this);
     this._detectScroll = this._detectScroll.bind(this);
     this._cancelMove = this._cancelMove.bind(this);
+    this._measureScreen = this._measureScreen.bind(this);
 
+    this._measureScreen();
     this._initObserver();
     this.connectObservation();
   }
@@ -85,6 +89,7 @@ export default class MovePriority {
     );
 
     this.el.addEventListener('mouseleave', this._cancelMove, false);
+    window.addEventListener('resize', this._measureScreen, false);
   }
 
   _detectScroll() {
@@ -105,62 +110,93 @@ export default class MovePriority {
     });
   }
 
+  _measureScreen() {
+    this.screenSize = {
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+    };
+  }
+
   _removeEvents() {
     this.el.removeEventListener(this.isTouch ? 'touchstart' : 'mousedown', this._startMove, false);
     this.el.removeEventListener('scroll', this._detectScroll);
     window.removeEventListener(this.isTouch ? 'touchmove' : 'mousemove', this._move);
     window.removeEventListener(this.isTouch ? 'touchend' : 'mouseup', this._stopMove, false);
     this.el.removeEventListener('mouseleave', this._cancelMove, false);
+    window.removeEventListener('resize', this._measureScreen, false);
   }
 
   destroy() {
     this.diconnectObservation();
   }
 
-  _normalizeEvent(event) {
+  _extendEvent(event, helper) {
     // eslint-disable-next-line prefer-const
     let { clientX, clientY, target } = event;
     if (event.targetTouches) {
-      clientX = event.targetTouches && event.targetTouches[0].clientX;
-      clientY = event.targetTouches && event.targetTouches[0].clientY;
+      clientX = helper
+        && helper.targetTouches[0].clientX
+        || event.targetTouches && event.targetTouches[0].clientX;
+      clientY = helper
+        && helper.targetTouches[0].clientY
+        || event.targetTouches && event.targetTouches[0].clientY;
     }
     return { nativeEvent: event, x: clientX, y: clientY, timeStamp: Date.now(), target };
   }
 
+  _calculateValues(firstEvent, nextEvent) {
+    const x = nextEvent.x - firstEvent.x;
+    const y = nextEvent.y - firstEvent.y;
+    const xPercentage = Math.abs(x * 100 / this.screenSize.innerWidth);
+    const yPercentage = Math.abs(y * 100 / this.screenSize.innerHeight);
+    const delta = { x, y, xPercentage, yPercentage };
+    const speed = Math.abs((x + y) / (nextEvent.timeStamp - firstEvent.timeStamp));
+    const direction = Math.abs(x) > Math.abs(y) ? x < 0 ? 'left' : 'right' : y < 0 ? 'up' : 'down';
+    return { delta, nativeEvent: nextEvent, speed, direction };
+  }
+
   _cancelMove(event) {
-    if (!this.canMove) return;
+    const firstEvent = this.startEvent || this.nativeStartEvent;
+    if (!this.canMove || !firstEvent) return;
     this._resetValues();
+    this.nativeStartEvent = null;
+    this.startEvent = null;
     this.options.onCancelMove({ nativeEvent: event });
   }
 
   _startMove(event) {
-    this.nativeStartEvent = this._normalizeEvent(event);
-    this.options.nativeStartMove({ nativeEvent: event });
+    this.nativeStartEvent = this._extendEvent(event);
+    this.lastTouch = event;
+    this.options.nativeStartMove(this.nativeStartEvent);
   }
 
   _move(event) {
-    // TODO: make some cool calculations
-    // speed, delta x/y, delta percentage based on screen,
-    this.options.nativeMove({ nativeEvent: event });
+    const firstEvent = this.startEvent || this.nativeStartEvent;
+    if (!firstEvent) return;
+    this.lastTouch = event;
+    const eventComparison = this._calculateValues(firstEvent, this._extendEvent(event));
+    this.options.nativeMove(eventComparison);
     if (this.canMove) {
       if (this.canMoveTimeout) clearTimeout(this.canMoveTimeout);
-      const normalizedEvent = this._normalizeEvent(event);
-      // TODO: also pass the calulcations here
-      this.options.onMove({ ...normalizedEvent, speed: 'test' });
-      return;
+      return this.options.onMove(eventComparison);
     }
-    this._isAllowedToMove();
+    this._isAllowedToMove(event);
   }
 
   _stopMove(event) {
-    // TODO: make some cool calculations
-    // speed, delta x/y, delta percentage based on screen, direction
+    const firstEvent = this.startEvent || this.nativeStartEvent;
+    if (!firstEvent) return;
+    const eventComparison = this._calculateValues(
+      firstEvent, this._extendEvent(event, this.lastTouch)
+    );
+    this.nativeStartEvent = null;
+    this.startEvent = null;
+    this.options.nativeStopMove(eventComparison);
+    if (this.canMove) this.options.onStopMove(eventComparison);
     this._resetValues();
-    this.options.onStopMove({ nativeEvent: event });
   }
 
   _resetValues() {
-    this.nativeStartEvent = null;
     this.canMove = false;
     this.moveEventsCount = 0;
     this.detectedMove = false;
@@ -175,8 +211,8 @@ export default class MovePriority {
     if (!this.touch) calledInRange = this.moveEventsCount > 2 && this.moveEventsCount < 100;
     if (inTime && calledInRange) {
       this.canMove = true;
-      // TODO: save some values here to make calculations
-      this.options.onStartMove({ nativeEvent: event });
+      this.startEvent = this._extendEvent(event);
+      this.options.onStartMove(this.startEvent);
     } else {
       clearTimeout(this.canMoveTimeout);
       this.canMoveTimeout = setTimeout(() => this._resetValues(), 60);

@@ -41,6 +41,10 @@ section {
                                   supported by Chrome, Opera and Firefox */
 }
 
+#dragula li, .gu-mirror  {
+  padding: 6px;
+}
+
 .container {
   display: flex;
   flex-direction: column;
