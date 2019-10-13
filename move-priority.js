@@ -2,8 +2,11 @@ const defaultOptions = {
   mutationWhiteList: [],
   nativeStartMove: () => {},
   onStartMove: () => {},
+  nativeMove: () => {},
   onMove: () => {},
   onEndMove: () => {},
+  onCancelMove: () => {},
+  onStopMove: () => {},
 };
 
 export default class MovePriority {
@@ -13,7 +16,6 @@ export default class MovePriority {
     this.options = { ...defaultOptions, ...options };
     this.whiteListed = this._nodeList2Array(this.options.mutationWhiteList);
 
-    // saved Events during interaction
     this.nativeStartEvent = null;
 
     // vars to detect, if the element is allowed to move
@@ -29,11 +31,12 @@ export default class MovePriority {
       && window.DocumentTouch
       && document instanceof window.DocumentTouch);
 
+    // methods called by event listeners
     this._startMove = this._startMove.bind(this);
-    this._stopMove = this._stopMove.bind(this);
     this._move = this._move.bind(this);
     this._stopMove = this._stopMove.bind(this);
     this._detectScroll = this._detectScroll.bind(this);
+    this._cancelMove = this._cancelMove.bind(this);
 
     this._initObserver();
     this.connectObservation();
@@ -44,7 +47,7 @@ export default class MovePriority {
   }
 
   _initObserver() {
-    // observe other drags
+    // observe other interactions
     this.mObserver = new MutationObserver(mutations => {
       mutations.forEach(event => {
         if (this.detectedMove || !this.nativeStartEvent) return;
@@ -81,7 +84,7 @@ export default class MovePriority {
       false,
     );
 
-    // TODO: event listener for mouseleave
+    this.el.addEventListener('mouseleave', this._cancelMove, false);
   }
 
   _detectScroll() {
@@ -104,9 +107,10 @@ export default class MovePriority {
 
   _removeEvents() {
     this.el.removeEventListener(this.isTouch ? 'touchstart' : 'mousedown', this._startMove, false);
-    window.removeEventListener('scroll', this._detectScroll);
+    this.el.removeEventListener('scroll', this._detectScroll);
     window.removeEventListener(this.isTouch ? 'touchmove' : 'mousemove', this._move);
     window.removeEventListener(this.isTouch ? 'touchend' : 'mouseup', this._stopMove, false);
+    this.el.removeEventListener('mouseleave', this._cancelMove, false);
   }
 
   destroy() {
@@ -123,27 +127,36 @@ export default class MovePriority {
     return { nativeEvent: event, x: clientX, y: clientY, timeStamp: Date.now(), target };
   }
 
+  _cancelMove(event) {
+    if (!this.canMove) return;
+    this._resetValues();
+    this.options.onCancelMove({ nativeEvent: event });
+  }
+
   _startMove(event) {
     this.nativeStartEvent = this._normalizeEvent(event);
-    this.options.nativeStartMove(this.nativeStartEvent);
+    this.options.nativeStartMove({ nativeEvent: event });
   }
 
   _move(event) {
+    // TODO: make some cool calculations
+    // speed, delta x/y, delta percentage based on screen,
+    this.options.nativeMove({ nativeEvent: event });
     if (this.canMove) {
       if (this.canMoveTimeout) clearTimeout(this.canMoveTimeout);
-      // TODO: make some cool calculations
-      // speed, delta x/y, delta percentage based on screen,
       const normalizedEvent = this._normalizeEvent(event);
+      // TODO: also pass the calulcations here
       this.options.onMove({ ...normalizedEvent, speed: 'test' });
       return;
     }
     this._isAllowedToMove();
   }
 
-  _stopMove() {
+  _stopMove(event) {
     // TODO: make some cool calculations
     // speed, delta x/y, delta percentage based on screen, direction
     this._resetValues();
+    this.options.onStopMove({ nativeEvent: event });
   }
 
   _resetValues() {
@@ -154,7 +167,7 @@ export default class MovePriority {
     this.detectedScroll = false;
   }
 
-  _isAllowedToMove() {
+  _isAllowedToMove(event) {
     if (!this.nativeStartEvent || this.canMove || this.detectedScroll || this.detectedMove) return;
     this.moveEventsCount++;
     const inTime = (Date.now() - this.nativeStartEvent.timeStamp) > 100;
@@ -163,6 +176,7 @@ export default class MovePriority {
     if (inTime && calledInRange) {
       this.canMove = true;
       // TODO: save some values here to make calculations
+      this.options.onStartMove({ nativeEvent: event });
     } else {
       clearTimeout(this.canMoveTimeout);
       this.canMoveTimeout = setTimeout(() => this._resetValues(), 60);
