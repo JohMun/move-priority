@@ -1,5 +1,7 @@
 const defaultOptions = {
+  preventDefault: false,
   mutationWhiteList: [],
+  scrollWhiteList: [],
   nativeStartMove: () => {},
   nativeMove: () => {},
   nativeStopMove: () => {},
@@ -14,8 +16,10 @@ export default class MovePriority {
     if (typeof el === 'string') el = document.querySelector(el);
     this.el = el;
     this.options = { ...defaultOptions, ...options };
-    this.whiteListed = this._nodeList2Array(this.options.mutationWhiteList);
+    this.mutationWhiteList = this._nodeList2Array(this.options.mutationWhiteList);
+    this.scrollWhiteList = this._nodeList2Array(this.options.scrollWhiteList);
     this.nativeStartEvent = null;
+    this.nativeMoveEvent = null;
     this.startEvent = null;
     this.screenSize = {};
     this.lastTouch = null;
@@ -56,12 +60,13 @@ export default class MovePriority {
       mutations.forEach(event => {
         if (this.detectedMove || !this.nativeStartEvent) return;
         // ignore style changes on the sections -> we change them ourselve during animations
-        if (this.whiteListed.some(el => event.target === el)) return;
+        if (this.mutationWhiteList.some(el => event.target === el)) return;
 
         const rect = event.target.getBoundingClientRect();
-        const { x, y } = this.nativeStartEvent;
+        const { x, y } = this.nativeMoveEvent || this.nativeStartEvent;
         const inY = y > rect.y && y < rect.y + rect.height;
         const inX = x > rect.x && x < rect.x + rect.width;
+        if (event.target.innerText === 'Moving') return;
         if (inY && inX) this.detectedMove = true;
       });
     });
@@ -92,7 +97,8 @@ export default class MovePriority {
     window.addEventListener('resize', this._measureScreen, false);
   }
 
-  _detectScroll() {
+  _detectScroll(event) {
+    if (this.scrollWhiteList.some(el => event.target === el)) return;
     this.detectedScroll = true;
   }
 
@@ -152,15 +158,14 @@ export default class MovePriority {
     const delta = { x, y, xPercentage, yPercentage };
     const speed = Math.abs((x + y) / (nextEvent.timeStamp - firstEvent.timeStamp));
     const direction = Math.abs(x) > Math.abs(y) ? x < 0 ? 'left' : 'right' : y < 0 ? 'up' : 'down';
-    return { delta, nativeEvent: nextEvent, speed, direction };
+    const start = { x: firstEvent.x, y: firstEvent.y };
+    return { start, delta, ...nextEvent, speed, direction };
   }
 
   _cancelMove(event) {
     const firstEvent = this.startEvent || this.nativeStartEvent;
     if (!this.canMove || !firstEvent) return;
     this._resetValues();
-    this.nativeStartEvent = null;
-    this.startEvent = null;
     this.options.onCancelMove({ nativeEvent: event });
   }
 
@@ -171,6 +176,8 @@ export default class MovePriority {
   }
 
   _move(event) {
+    if (this.options.preventDefault) event.preventDefault();
+    this.nativeMoveEvent = this._extendEvent(event);
     const firstEvent = this.startEvent || this.nativeStartEvent;
     if (!firstEvent) return;
     this.lastTouch = event;
@@ -189,24 +196,25 @@ export default class MovePriority {
     const eventComparison = this._calculateValues(
       firstEvent, this._extendEvent(event, this.lastTouch)
     );
-    this.nativeStartEvent = null;
-    this.startEvent = null;
     this.options.nativeStopMove(eventComparison);
     if (this.canMove) this.options.onStopMove(eventComparison);
     this._resetValues();
   }
 
   _resetValues() {
-    this.canMove = false;
-    this.moveEventsCount = 0;
+    this.nativeMoveEvent = null;
+    this.nativeStartEvent = null;
+    this.startEvent = null;
     this.detectedMove = false;
     this.detectedScroll = false;
+    this.canMove = false;
+    this.moveEventsCount = 0;
   }
 
   _isAllowedToMove(event) {
     if (!this.nativeStartEvent || this.canMove || this.detectedScroll || this.detectedMove) return;
     this.moveEventsCount++;
-    const inTime = (Date.now() - this.nativeStartEvent.timeStamp) > 100;
+    const inTime = (Date.now() - this.nativeStartEvent.timeStamp) > 60;
     let calledInRange = this.moveEventsCount > 2 && this.moveEventsCount < 18;
     if (!this.touch) calledInRange = this.moveEventsCount > 2 && this.moveEventsCount < 100;
     if (inTime && calledInRange) {
@@ -215,7 +223,10 @@ export default class MovePriority {
       this.options.onStartMove(this.startEvent);
     } else {
       clearTimeout(this.canMoveTimeout);
-      this.canMoveTimeout = setTimeout(() => this._resetValues(), 60);
+      this.canMoveTimeout = setTimeout(() => {
+        this.canMove = false;
+        this.moveEventsCount = 0;
+      }, 60);
     }
   }
 }
